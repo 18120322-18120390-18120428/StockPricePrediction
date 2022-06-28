@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Price Prediction Website</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawMainChart);
+      google.charts.setOnLoadCallback(drawRSIChart);
+
+<!--        function drawMainChart() {-->
+<!--            var data = google.visualization.arrayToDataTable({{candle_stick_data|safe}}, true);-->
+
+<!--            var options = {-->
+<!--              legend:'none',-->
+<!--              bar: { groupWidth: '100%' }, // Remove space between bars.-->
+<!--              candlestick: {-->
+<!--                fallingColor: { strokeWidth: 0, fill: '#a52714' }, // red-->
+<!--                risingColor: { strokeWidth: 0, fill: '#0f9d58' }   // green-->
+<!--              }-->
+<!--            };-->
+
+<!--            var chart = new google.visualization.CandlestickChart(document.getElementById('main_graph'));-->
+
+<!--            chart.draw(data, options);-->
+<!--        }-->
+
+
+
+        function drawMainChart() {
+            var data = google.visualization.arrayToDataTable({{candle_stick_data|safe}});
+
+            var options = {
+              title: "Stock Price Chart in {{intervalString|safe}}",
+              hAxis: {title: "Date"},
+              vAxis: {title: "Price"},
+              bar: { groupWidth: '100%' }, // Remove space between bars.
+              format: 'short',
+              pointShape: 'star',
+              pointSize: 12,
+              series: {
+                  0: {
+                    type: 'candlesticks',
+                    candlestick: {
+                        fallingColor: { strokeWidth: 0, fill: '#a52714' }, // red
+                        risingColor: { strokeWidth: 0, fill: '#0f9d58' }   // green
+                    },
+                  },
+                  1: {
+                    type: 'line',
+                    color: 'yellow',
+                    visibleInLegend: true,
+                    pointSize: 0,
+                  },
+              },
+            };
+
+            var chart = new google.visualization.ComboChart(document.getElementById('main_graph'));
+
+            chart.draw(data, options);
+        }
+
+        function drawRSIChart() {
+            var data = google.visualization.arrayToDataTable({{rsi_data|safe}});
+
+            var options = {
+              title: 'Relative Strength Index',
+              hAxis: {title: "Date"},
+              vAxis: {title: "RSI"},
+              pointShape: 'star',
+              pointSize: 12,
+              series: {
+                  0: {
+                    type: 'line',
+                    color: 'blue',
+                    visibleInLegend: true,
+                    pointSize: 0,
+                  },
+              },
+            };
+
+            var chart = new google.visualization.ComboChart(document.getElementById('rsi_graph'));
+
+            chart.draw(data, options);
+        }
+
+    </script>
+</head>
+<body>
+<div id="myDIV" class="header">
+    <h2 style="margin:5px">Stock Price Prediction Website</h2>
+</div>
+
+<div id="filter" class="">
+    <form action="" method="GET">
+        {% csrf_token %}
+        <label for="interval">Choose a Interval:</label>
+        <select name="interval" id="interval" >
+            {% for interval in intervals %}
+                {% if interval.value == selectedInterval %}
+                    <option value="{{ interval.value }}" selected>{{ interval.text }}</option>
+                {% else %}
+                    <option value="{{ interval.value }}" >{{ interval.text }}</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+
+        <label for="feature">Choose a Feature:</label>
+        <select name="feature" id="feature">
+            {% for feature in features %}
+                {% if feature.value == selectedFeature %}
+                    <option value="{{ feature.value }}" selected>{{ feature.text }}</option>
+                {% else %}
+                    <option value="{{ feature.value }}" >{{ feature.text }}</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+
+        <input type="submit" value="Submit">
+    </form>
+</div>
+</br>
+<div id="main_graph" style="width: 1240px; height: 900px; position: relative, margin:5px"></div>
+<div id="rsi_graph" style="width: 1240px; height: 360px; position: relative, margin:5px"></div>
+</body>
+</html>
