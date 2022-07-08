@@ -11,7 +11,7 @@ from keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 
 
-def get_data(interval):
+def get_exist_data(interval):
     relative_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'Data' + interval + '.csv')
     file_exists = os.path.exists(relative_path)
 
@@ -19,14 +19,24 @@ def get_data(interval):
         print("Relative path" + relative_path)
         df = pd.read_csv(relative_path, sep='\t', encoding='utf-8')
     else:
-        df = preprocessing_data.read_data(interval)
-        df = preprocessing_data.add_roc_column(df)
-        df = preprocessing_data.add_ma_and_bollingband_column(df)
-        df = preprocessing_data.add_rsi_column(df)
-        df.to_csv(relative_path, sep='\t', encoding='utf-8')
+        df = get_new_data(interval)
 
-    df = df.tail(100)
-    df.index = range(0, (100, len(df))[len(df) < 100], 1)
+    df = df.tail(1000)
+    df.index = range(0, (1000, len(df))[len(df) < 1000], 1)
+
+    return df
+
+
+def get_new_data(interval):
+    relative_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'Data' + interval + '.csv')
+
+    df = preprocessing_data.read_data(interval)
+    df = preprocessing_data.add_roc_column(df)
+    df = preprocessing_data.add_ma_and_bollingband_column(df)
+    df = preprocessing_data.add_rsi_column(df)
+    df = df.tail(1000)
+    df.index = range(0, (1000, len(df))[len(df) < 1000], 1)
+    df.to_csv(relative_path, sep='\t', encoding='utf-8')
 
     return df
 
@@ -51,9 +61,19 @@ def build_n_train_lstm_model(df, interval, target_column):
     if file_exists:
         lstm_model = load_model(relative_path)
     else:
-        x_train, y_train = normalize_data.normalize_and_split_train_data(df, target_column)
-        lstm_model = build_and_train_lstm_model.build_and_train_lstm_model(x_train, y_train)
-        lstm_model.save(relative_path)
+        lstm_model = build_n_train_new_lstm_model(df, interval, target_column)
+
+    return lstm_model
+
+
+def build_n_train_new_lstm_model(df, interval, target_column):
+    relative_path = os.path.join(os.path.dirname(__file__), '..', 'models',
+                                 "lstm_model_" + interval + target_column + ".h5")
+
+    x_train, y_train = normalize_data.normalize_and_split_train_data(df, target_column)
+
+    lstm_model = build_and_train_lstm_model.build_and_train_lstm_model(x_train, y_train)
+    lstm_model.save(relative_path)
 
     return lstm_model
 
@@ -78,11 +98,18 @@ def build_n_train_xgboost_model(df, interval, target_column):
     file_exists = os.path.exists(relative_path)
 
     if not file_exists:
-        x_train, y_train = normalize_data.normalize_and_split_train_data(df, target_column)
-        xgboost_model = build_and_train_xgboost_model.build_and_train_xgboost_model(x_train, y_train)
-        xgboost_model.save_model(relative_path)
+        build_n_train_new_xgboost_model(df, interval, target_column)
 
     xgboost_model = xgb.Booster()
     xgboost_model.load_model(relative_path)
 
     return xgboost_model
+
+
+def build_n_train_new_xgboost_model(df, interval, target_column):
+    relative_path = os.path.join(os.path.dirname(__file__), '..', 'models',
+                                 "xgboost_model_" + interval + target_column + ".txt")
+
+    x_train, y_train = normalize_data.normalize_and_split_train_data(df, target_column)
+    xgboost_model = build_and_train_xgboost_model.build_and_train_xgboost_model(x_train, y_train)
+    xgboost_model.save_model(relative_path)

@@ -2,15 +2,21 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
-scaler = MinMaxScaler(feature_range=(0, 1)) # MinMaxScaler sẽ đưa các biến về miền giá trị [0, 1]
+scaler = MinMaxScaler(feature_range=(0, 1))  # MinMaxScaler sẽ đưa các biến về miền giá trị [0, 1]
 
 
 def normalize_and_split_train_data(df, target_column):
+    train_data_len = df[target_column].notnull().sum()
+
     # extract target column from dataframe
-    data = df.filter([target_column])
+    data = df.filter([target_column]).loc[-train_data_len:, :]
+    data = data.tail(train_data_len)
+    data.index = range(0, train_data_len, 1)
     dataset = data.values
 
-    train_data_len = len(df)
+    if target_column == "RSI":
+        print(train_data_len)
+        print(data)
 
     # Scale data
     scaled_data = scaler.fit_transform(dataset)  # Tranform dữ liệu về khoảng [0-1]

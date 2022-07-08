@@ -3,7 +3,7 @@ import numpy as np
 from django.shortcuts import render
 from random import randrange
 
-from utils.main import get_data, predict_with_lstm_model, predict_with_xgboost_model
+from utils.main import get_exist_data, predict_with_lstm_model, predict_with_xgboost_model
 from .constants import intervals, features
 
 
@@ -18,10 +18,21 @@ def index(request):
         if request.GET.__contains__("feature"):
             selected_feature = request.GET["feature"]
 
-    df = get_data(selected_interval)
+    df = get_exist_data(selected_interval)
+
+    # Predict for selected_feature
+    lstm_feature_predict = predict_with_lstm_model(df, selected_interval, selected_feature)
+    xgboost_feature_predict = predict_with_xgboost_model(df, selected_interval, selected_feature)
+
+    # Predict for rsi feature
+    lstm_rsi_predict = predict_with_lstm_model(df, selected_interval, "RSI")
+    xgboost_rsi_predict = predict_with_xgboost_model(df, selected_interval, "RSI")
+
+    df = df.tail(100)
+    df.index = range(0, (100, len(df))[len(df) < 100], 1)
 
     main_chart_columns = ["Date", "Low", "Open", "Close", "High", selected_feature,
-               "LSTM " + selected_feature + " Prediction", "Xgboost " + selected_feature + " Prediction"]
+                          "LSTM " + selected_feature + " Prediction", "Xgboost " + selected_feature + " Prediction"]
     rsi_chart_columns = ["Date", "RSI", "LSTM RSI Predict", "Xgboost RSI Predict"]
 
     df["LSTM " + selected_feature + " Prediction"] = np.NaN
@@ -37,16 +48,9 @@ def index(request):
     candle_stick_data.extend(df.loc[:, main_chart_columns].values.tolist())
     rsi_data.extend(df.loc[:, rsi_chart_columns].values.tolist())
 
-    # Predict for selected_feature
-    lstm_feature_predict = predict_with_lstm_model(df, selected_interval, selected_feature)
-    xgboost_feature_predict = predict_with_xgboost_model(df, selected_interval, selected_feature)
-
     candle_stick_data.append(
-        ["Predict", None, None, None, None, None, float(lstm_feature_predict[0][0]), float(xgboost_feature_predict[0][0])])
-
-    # Predict for rsi feature
-    lstm_rsi_predict = predict_with_lstm_model(df, selected_interval, "RSI")
-    xgboost_rsi_predict = predict_with_xgboost_model(df, selected_interval, "RSI")
+        ["Predict", None, None, None, None, None, float(lstm_feature_predict[0][0]),
+         float(xgboost_feature_predict[0][0])])
 
     rsi_data.append(["Predict", None, float(lstm_rsi_predict[0][0]), float(xgboost_rsi_predict[0][0])])
 
